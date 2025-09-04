@@ -1,0 +1,82 @@
+# =========================
+# Cocos Creator 專案暫存檔
+# =========================
+library/
+temp/
+local/
+*.log
+.creator/
+
+# =========================
+# Cocos Creator build 輸出
+# =========================
+# Android/iOS 原生打包輸出
+build/jsb-link/
+build/jsb-default/
+build/jsb-android/
+build/jsb-ios/
+
+# Web/H5 輸出
+build/web-desktop/
+build/web-mobile/
+dist/
+deploy/
+
+# 其他 build 資料夾
+build/
+
+# =========================
+# Node.js / 前端相關
+# =========================
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# =========================
+# Android Studio / Gradle
+# =========================
+.gradle/
+build/
+*/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 產物與二進位檔
+*.apk
+*.ap_ 
+*.aab
+*.dex
+*.class
+*.so
+*.jar
+*.keystore
+*.jks
+*.proguard/
+
+# Android Studio IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# =========================
+# VSCode
+# =========================
+.vscode/
+
+# =========================
+# 系統檔案
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej

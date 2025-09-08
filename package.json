@@ -3,5 +3,8 @@
   "uuid": "ae908f7f-a721-4c93-9c58-7ca91ffa7d3a",
   "creator": {
     "version": "3.8.6"
+  },
+  "dependencies": {
+    "spark-md5": "^3.0.2"
   }
 }

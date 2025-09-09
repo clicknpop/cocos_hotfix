@@ -271,8 +271,8 @@ export class HotfixMgr {
             console.log('hotfix on update event.', code);
         }
 
-        let isFailed = true;
-        let isReboot = false;
+        let failed = false;
+        let reboot = false;
 
         switch (code) {
             // 更新中
@@ -280,18 +280,18 @@ export class HotfixMgr {
                 this._hint?.onUpdating(event.getDownloadedFiles(), 
                                        event.getDownloadedBytes(), 
                                        event.getMessage());
-                isFailed = false;
                 break;
 
             // 更新完成
             case native.EventAssetsManager.UPDATE_FINISHED:
                 this._hint?.onUpdated();
-                isReboot = true;
+                reboot = true;
                 break;
 
             // 其他
             default:
                 this._hint?.onUpdateErr(code, event.getMessage(), event.getAssetId());
+                failed = true;
                 break;
         }
 
@@ -305,13 +305,13 @@ export class HotfixMgr {
         }
 
         // 清空
-        if (isFailed || isReboot) {
+        if (failed || reboot) {
             this._am.setEventCallback(null);
             this._isWorking = false;
         }
 
         // 重開
-        isReboot && this.reboot();
+        reboot && this.reboot();
     }
 
     /**

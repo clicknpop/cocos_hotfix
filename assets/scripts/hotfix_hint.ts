@@ -41,7 +41,6 @@ export interface HotfixHint {
 
     /**
      * 熱更完成
-     * @returns 經過此時間後將進行重啟
      */
-    onUpdated(): Promise<number>;
+    onUpdated(): void;
 }

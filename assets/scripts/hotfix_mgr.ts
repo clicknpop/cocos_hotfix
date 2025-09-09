@@ -246,6 +246,8 @@ export class HotfixMgr {
             return;
         }
 
+        this._hint?.onUpdateStart(this._am.getTotalFiles(), this._am.getTotalBytes());
+
         this._isWorking = true;
         this._am.setEventCallback(this.onUpdateEvent.bind(this));
         this._am.update();
@@ -255,6 +257,65 @@ export class HotfixMgr {
      * 熱更中事件
      */
     private onUpdateEvent(event: any): void {
-        // TODO
+        let code = event.getEventCode();
+
+        // 防洗頻
+        if (code != native.EventAssetsManager.UPDATE_PROGRESSION) {
+            console.log('hotfix on update event.', code);
+        }
+
+        let isFailed = true;
+        let isReboot = false;
+
+        switch (code) {
+            // 更新中
+            case native.EventAssetsManager.UPDATE_PROGRESSION:
+                this._hint?.onUpdating(event.getDownloadedFiles(), 
+                                       event.getDownloadedBytes(), 
+                                       event.getMessage());
+
+                isFailed = false;
+                break;
+
+            // 更新完成
+            case native.EventAssetsManager.UPDATE_FINISHED:
+                this._hint?.onUpdated();
+                isReboot = true;
+                break;
+
+            // 其他
+            default:
+                this._hint?.onUpdateErr(code, event.getMessage(), event.getAssetId());
+                break;
+        }
+
+        // 清空
+        if (isFailed || isReboot) {
+            this._am.setEventCallback(null);
+            this._isWorking = false;
+        }
+
+        // 重開
+        if (isReboot) {
+            let searchPaths = native.fileUtils.getSearchPaths();
+			let newPaths = this._am?.getLocalManifest().getSearchPaths();
+
+            console.log(`hotfix new paths.`, newPaths);
+
+            // 添加到數組開頭
+			if (newPaths && newPaths.length > 0) {
+				searchPaths.unshift(...newPaths);
+            }
+
+            // 添加到local save中, 這樣main.js才會在啟動時, 拿本地新值比對遠端
+			localStorage.setItem('HotUpdateSearchPaths', JSON.stringify(searchPaths));
+            native.fileUtils.setSearchPaths(searchPaths);
+
+            // 倒數
+            window.setTimeout(() => {
+				this.shutdown();
+				game.restart();
+			}, 1000);
+        }
     }
 }

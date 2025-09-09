@@ -41,10 +41,17 @@ export class HotfixMgr {
     private _hint: HotfixHint = null;
 
     /**
+     * 是否在執行業務中
+     */
+    private _isWorking: boolean = false;
+
+    /**
      * 關閉
      */
     shutdown(): void {
         this._hint = null;
+        this._isWorking = false;
+
         this._am?.setEventCallback(null);
         this._am?.setVerifyCallback(null);
         this._am = null;
@@ -56,10 +63,14 @@ export class HotfixMgr {
      */
     async init(hint: HotfixHint): Promise<void> {
         if (!this.enable) {
+            console.warn('hotfix init failed, wrong env.');
             return;
         }
 
-        this._hint = hint;
+        if (this._isWorking) {
+            console.warn(`hotfix init failed, it's working.`);
+            return;
+        }
 
         // 存儲路徑
         let path = native.fileUtils ? native.fileUtils.getWritablePath() : '/';
@@ -69,6 +80,9 @@ export class HotfixMgr {
         // native資源管理
         let url = await this.loadManifest();
         this.initAM(url);
+
+        this._hint = hint;
+        this._isWorking = false;
     }
 
     /**
@@ -77,7 +91,7 @@ export class HotfixMgr {
      */
     private async loadManifest(): Promise<string> {
         return new Promise((resolve, reject) => {
-            console.log('hotfix start load local manifest.', HotfixMgr._MANIFEST_PATH);
+            console.log('hotfix load local manifest.', HotfixMgr._MANIFEST_PATH);
             
             resources.load(HotfixMgr._MANIFEST_PATH, Asset, (err, asset) => {
                 if (err) {
@@ -96,10 +110,10 @@ export class HotfixMgr {
      * @param url 文件在native的url
      */
     private initAM(url: string): void {
-        console.log('hotfix start init am.', url, this._storagePath);
+        console.log('hotfix init am.', url, this._storagePath);
 
         this._am = new native.AssetsManager(url, this._storagePath, (verA, verB) => {
-            console.log(`hotfix start compare ver.`, verA, verB);
+            console.log(`hotfix compare ver.`, verA, verB);
             return this.compareVer(verA, verB);
         });
 
@@ -159,4 +173,70 @@ export class HotfixMgr {
 		console.info(`hotfix verify asset failed.`, relative, localMD5, asset.md5);
 		return false;
 	}
+
+    /**
+     * 檢查是否需要熱更
+     */
+    checkUpdate(): void {
+        if (!this.enable) {
+            console.warn('hotfix check update failed, wrong env.');
+            return;
+        }
+
+        if (!this._am) {
+            console.error('hotfix check update failed, am is null.');
+            return;
+        }
+
+        if (this._isWorking) {
+            console.warn(`hotfix check update failed, it's working.`);
+            return;
+        }
+
+        this._isWorking = true;
+
+        this._am.setEventCallback(this.onCheckEvent.bind(this));
+        this._am.checkUpdate();
+    }
+
+    /**
+     * 檢查事件
+     * @param event 
+     */
+    private onCheckEvent(event: any): void {
+        // TODO
+    }
+
+    /**
+     * 開始熱更
+     */
+    startUpdate(): void {
+        if (!this.enable) {
+            console.warn('hotfix start update failed, wrong env.');
+            return;
+        }
+
+        if (!this._am) {
+            console.error('hotfix start update failed, am is null.');
+            return;
+        }
+
+        if (this._isWorking) {
+            console.warn(`hotfix start update failed, it's working.`);
+            return;
+        }
+
+        this._isWorking = true;
+
+        this._am.setEventCallback(this.onUpdateEvent.bind(this));
+        this._am.update();
+    }
+
+    /**
+     * 更新事件
+     * @param event 
+     */
+    private onUpdateEvent(event: any): void {
+        // TODO
+    }
 }

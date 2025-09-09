@@ -194,17 +194,37 @@ export class HotfixMgr {
         }
 
         this._isWorking = true;
-
         this._am.setEventCallback(this.onCheckEvent.bind(this));
         this._am.checkUpdate();
     }
 
     /**
-     * 檢查事件
-     * @param event 
+     * 檢查熱更事件
      */
     private onCheckEvent(event: any): void {
-        // TODO
+        let code = event.getEventCode();
+        console.log('hotfix on check event.', code);
+
+        switch (code) {
+            // 發現新版本
+            case native.EventAssetsManager.NEW_VERSION_FOUND:
+                this._hint?.onChecked(true, this._am.getTotalBytes());
+                break;
+
+            // 已經是最新版
+            case native.EventAssetsManager.ALREADY_UP_TO_DATE:
+                this._hint?.onChecked(false, 0);
+                break;
+
+            // 其他
+            default:
+                this._hint?.onCheckErr(code);
+                break;
+        }
+
+        // 清空
+        this._am.setEventCallback(null);
+        this._isWorking = false;
     }
 
     /**
@@ -227,14 +247,12 @@ export class HotfixMgr {
         }
 
         this._isWorking = true;
-
         this._am.setEventCallback(this.onUpdateEvent.bind(this));
         this._am.update();
     }
 
     /**
-     * 更新事件
-     * @param event 
+     * 熱更中事件
      */
     private onUpdateEvent(event: any): void {
         // TODO

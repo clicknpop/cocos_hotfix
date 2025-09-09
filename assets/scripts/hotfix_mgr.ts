@@ -46,6 +46,11 @@ export class HotfixMgr {
     private _isWorking: boolean = false;
 
     /**
+     * 重試熱更的剩餘次數
+     */
+    private _retryCount: number = 0;
+
+    /**
      * 關閉
      */
     shutdown(): void {
@@ -246,9 +251,11 @@ export class HotfixMgr {
             return;
         }
 
+        this._isWorking = true;
+        this._retryCount = 1;
+
         this._hint?.onUpdateStart(this._am.getTotalFiles(), this._am.getTotalBytes());
 
-        this._isWorking = true;
         this._am.setEventCallback(this.onUpdateEvent.bind(this));
         this._am.update();
     }
@@ -273,7 +280,6 @@ export class HotfixMgr {
                 this._hint?.onUpdating(event.getDownloadedFiles(), 
                                        event.getDownloadedBytes(), 
                                        event.getMessage());
-
                 isFailed = false;
                 break;
 
@@ -289,6 +295,15 @@ export class HotfixMgr {
                 break;
         }
 
+        // 更新失敗時先重試
+        if (code == native.EventAssetsManager.UPDATE_FAILED) {
+            if (this._retryCount-- > 0) {
+                console.warn('hotfix retry update.');
+                this._am?.downloadFailedAssets();
+                return;
+            }
+        }
+
         // 清空
         if (isFailed || isReboot) {
             this._am.setEventCallback(null);
@@ -296,26 +311,32 @@ export class HotfixMgr {
         }
 
         // 重開
-        if (isReboot) {
-            let searchPaths = native.fileUtils.getSearchPaths();
-			let newPaths = this._am?.getLocalManifest().getSearchPaths();
+        isReboot && this.reboot();
+    }
 
-            console.log(`hotfix new paths.`, newPaths);
+    /**
+     * 重開app
+     * @summary 在更新完成後執行
+     */
+    private reboot(): void {
+        let searchPaths = native.fileUtils.getSearchPaths();
+        let newPaths = this._am?.getLocalManifest().getSearchPaths();
 
-            // 添加到數組開頭
-			if (newPaths && newPaths.length > 0) {
-				searchPaths.unshift(...newPaths);
-            }
+        console.log(`hotfix new paths.`, newPaths);
 
-            // 添加到local save中, 這樣main.js才會在啟動時, 拿本地新值比對遠端
-			localStorage.setItem('HotUpdateSearchPaths', JSON.stringify(searchPaths));
-            native.fileUtils.setSearchPaths(searchPaths);
-
-            // 倒數
-            window.setTimeout(() => {
-				this.shutdown();
-				game.restart();
-			}, 1000);
+        // 添加到數組開頭
+        if (newPaths && newPaths.length > 0) {
+            searchPaths.unshift(...newPaths);
         }
+
+        // 添加到local save中, 這樣main.js才會在啟動時, 拿本地新值比對遠端
+        localStorage.setItem('HotUpdateSearchPaths', JSON.stringify(searchPaths));
+        native.fileUtils.setSearchPaths(searchPaths);
+
+        // 倒數
+        window.setTimeout(() => {
+            this.shutdown();
+            game.restart();
+        }, 1000);
     }
 }
